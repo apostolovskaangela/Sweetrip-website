@@ -26,7 +26,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'CEO',
                 'password' => bcrypt('password'),
-                'role'=>'ceo',
+                'role_id'=>1,
             ]
         );
         $ceo->assignRole($ceoRole);
@@ -37,7 +37,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Manager',
                 'password' => bcrypt('123123123'),
-                'role'=>'manager',
+                'role_id'=>2,
 
             ]
         );
@@ -48,7 +48,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Manager',
                 'password' => bcrypt('123123123'),
-                'role'=>'manager',
+                'role_id'=>2,
 
             ]
         );
@@ -60,7 +60,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Admin',
                 'password' => bcrypt('password'),
-                'role'=>'admin',
+                'role_id'=>3,
 
             ]
         );
@@ -68,7 +68,7 @@ class RoleSeeder extends Seeder
 
         // Create sample Driver user
         $driver = User::firstOrCreate(
-            ['email' => ' '],
+            ['email' => 'angelique@example.com'],
             [
                 'name' => 'Angelique',
                 'password' => bcrypt('password'),

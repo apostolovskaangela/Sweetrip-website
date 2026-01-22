@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->foreignId('manager_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->string('role')->default('driver');
+            $table->integer('role_id')->default('4');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

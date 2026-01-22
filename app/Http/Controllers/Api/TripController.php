@@ -87,41 +87,77 @@ class TripController extends Controller
     /**
      * Get available drivers and vehicles for trip creation.
      */
+    // public function create(Request $request): JsonResponse
+    // {
+    //     $user = $request->user();
+
+    //     // Drivers
+    //     if ($user->isManager()) {
+    //         $drivers = User::where('manager_id', $user->id)->get();
+    //         $vehicles = Vehicle::where('manager_id', $user->id)
+    //             ->where('is_active', true)
+    //             ->get();
+    //     } else {
+    //         // Admin can see all
+    //         $drivers = User::role('driver')->get();
+    //         $vehicles = Vehicle::where('is_active', true)->get();
+    //     }
+
+    //     return response()->json([
+    //         'drivers' => $drivers->map(function ($driver) {
+    //             return [
+    //                 'id' => $driver->id,
+    //                 'name' => $driver->name,
+    //                 'email' => $driver->email,
+    //             ];
+    //         }),
+    //         'vehicles' => $vehicles->map(function ($vehicle) {
+    //             return [
+    //                 'id' => $vehicle->id,
+    //                 'registration_number' => $vehicle->registration_number,
+    //                 'make' => $vehicle->make ?? null,
+    //                 'model' => $vehicle->model ?? null,
+    //                 'is_active' => $vehicle->is_active,
+    //             ];
+    //         }),
+    //     ]);
+    // }
     public function create(Request $request): JsonResponse
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        // Drivers
-        if ($user->isManager()) {
-            $drivers = User::where('manager_id', $user->id)->get();
-            $vehicles = Vehicle::where('manager_id', $user->id)
-                ->where('is_active', true)
-                ->get();
-        } else {
-            // Admin can see all
-            $drivers = User::role('driver')->get();
-            $vehicles = Vehicle::where('is_active', true)->get();
-        }
+    // MANAGER
+    if ($user->role_id === 2) {
+        $drivers = User::where('manager_id', $user->id)
+            ->where('role_id', 4)
+            ->get();
 
-        return response()->json([
-            'drivers' => $drivers->map(function ($driver) {
-                return [
-                    'id' => $driver->id,
-                    'name' => $driver->name,
-                    'email' => $driver->email,
-                ];
-            }),
-            'vehicles' => $vehicles->map(function ($vehicle) {
-                return [
-                    'id' => $vehicle->id,
-                    'registration_number' => $vehicle->registration_number,
-                    'make' => $vehicle->make ?? null,
-                    'model' => $vehicle->model ?? null,
-                    'is_active' => $vehicle->is_active,
-                ];
-            }),
-        ]);
+        $vehicles = Vehicle::where('manager_id', $user->id)
+            ->where('is_active', true)
+            ->get();
     }
+    // CEO / ADMIN
+    else {
+        $drivers = User::where('role_id', 4)->get();
+        $vehicles = Vehicle::where('is_active', true)->get();
+    }
+
+    return response()->json([
+        'drivers' => $drivers->map(fn ($driver) => [
+            'id' => $driver->id,
+            'name' => $driver->name,
+            'email' => $driver->email,
+        ]),
+        'vehicles' => $vehicles->map(fn ($vehicle) => [
+            'id' => $vehicle->id,
+            'registration_number' => $vehicle->registration_number,
+            'make' => $vehicle->make ?? null,
+            'model' => $vehicle->model ?? null,
+            'is_active' => $vehicle->is_active,
+        ]),
+    ]);
+}
+
 
     /**
      * Store a newly created resource in storage.

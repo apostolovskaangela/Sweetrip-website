@@ -17,35 +17,57 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // -----------------------------
+        // Load data based on role
+        // -----------------------------
         if ($user->isDriver()) {
             $drivers = collect([$user]);
-            $trips = $user->assignedTrips()->with('vehicle')->get();
-            $vehicles = $user->assignedTrips()->with('vehicle')->get()->pluck('vehicle')->unique('id');
+
+            $trips = $user->assignedTrips()
+                ->with('driver', 'vehicle')
+                ->get();
+
+            $vehicles = $trips->pluck('vehicle')->filter()->unique('id')->values();
         } elseif ($user->isManager()) {
             $drivers = $user->drivers()->get();
+
             $vehicles = $user->managedVehicles()->get();
+
             $trips = Trip::whereHas('vehicle', function ($q) use ($user) {
                 $q->where('manager_id', $user->id);
-            })->with('driver', 'vehicle')->get();
+            })
+                ->with('driver', 'vehicle')
+                ->get();
         } else {
-            // CEO/Admin: see everything
-            $drivers = User::role('driver')->get();
+            // CEO / Admin
+            $driverRoleId = 4;
+            $drivers = User::where('role_id', $driverRoleId)->get();
             $trips = Trip::with('driver', 'vehicle')->get();
             $vehicles = Vehicle::all();
         }
 
-        $activeTrips = $trips->where('status', '!=', TripStatus::COMPLETED)->count();
+        // -----------------------------
+        // Statistics
+        // -----------------------------
 
+        // Active trips = not completed
+        $activeTrips = $trips->filter(fn($trip) => $trip->status !== TripStatus::COMPLETED)->count();
+
+        // Distance today = only COMPLETED trips today
         $distanceToday = $trips->filter(function ($trip) {
-            return $trip->trip_date == Carbon::today()->toDateString();
+            return $trip->trip_date === Carbon::today()->toDateString()
+                && $trip->status === TripStatus::COMPLETED;
         })->sum('mileage');
 
-        $totalTripsLastMonth = $trips->filter(function ($trip) {
-            return $trip->trip_date >= Carbon::now()->subDays(30)->toDateString();
+        // Last 30 days
+        $fromDate = Carbon::now()->subDays(30)->toDateString();
+
+        $totalTripsLastMonth = $trips->filter(function ($trip) use ($fromDate) {
+            return $trip->trip_date >= $fromDate;
         })->count();
 
-        $completedTripsLastMonth = $trips->filter(function ($trip) {
-            return $trip->trip_date >= Carbon::now()->subDays(30)->toDateString()
+        $completedTripsLastMonth = $trips->filter(function ($trip) use ($fromDate) {
+            return $trip->trip_date >= $fromDate
                 && $trip->status === TripStatus::COMPLETED;
         })->count();
 
@@ -55,6 +77,12 @@ class DashboardController extends Controller
 
         $totalVehicles = $vehicles->count();
 
+        // Recent trips for dashboard list
+        $recentTrips = $trips->sortByDesc('trip_date')->take(5)->values();
+
+        // -----------------------------
+        // Response
+        // -----------------------------
         return response()->json([
             'stats' => [
                 'active_trips' => $activeTrips,
@@ -64,42 +92,37 @@ class DashboardController extends Controller
                 'total_trips_last_month' => $totalTripsLastMonth,
                 'completed_trips_last_month' => $completedTripsLastMonth,
             ],
-            'drivers' => $drivers->map(function ($driver) {
-                return [
-                    'id' => $driver->id,
-                    'name' => $driver->name,
-                    'email' => $driver->email,
-                ];
-            }),
-            'trips' => $trips->map(function ($trip) {
-                return [
-                    'id' => $trip->id,
-                    'trip_number' => $trip->trip_number,
-                    'status' => $trip->status->value,
-                    'status_label' => $trip->status_label,
-                    'trip_date' => $trip->trip_date,
-                    'destination_from' => $trip->destination_from,
-                    'destination_to' => $trip->destination_to,
-                    'mileage' => $trip->mileage,
-                    'driver' => $trip->driver ? [
-                        'id' => $trip->driver->id,
-                        'name' => $trip->driver->name,
-                        'email' => $trip->driver->email,
-                    ] : null,
-                    'vehicle' => $trip->vehicle ? [
-                        'id' => $trip->vehicle->id,
-                        'registration_number' => $trip->vehicle->registration_number,
-                    ] : null,
-                ];
-            }),
-            'vehicles' => $vehicles->map(function ($vehicle) {
-                return [
-                    'id' => $vehicle->id,
-                    'registration_number' => $vehicle->registration_number,
-                    'is_active' => $vehicle->is_active,
-                ];
-            }),
+
+            'drivers' => $drivers->map(fn($driver) => [
+                'id' => $driver->id,
+                'name' => $driver->name,
+                'email' => $driver->email,
+            ]),
+
+            'recent_trips' => $recentTrips->map(fn($trip) => [
+                'id' => $trip->id,
+                'trip_number' => $trip->trip_number,
+                'trip_date' => $trip->trip_date,
+                'status' => $trip->status->value,
+                'status_label' => $trip->status_label,
+                'destination_from' => $trip->destination_from,
+                'destination_to' => $trip->destination_to,
+                'mileage' => $trip->mileage,
+                'driver' => $trip->driver ? [
+                    'id' => $trip->driver->id,
+                    'name' => $trip->driver->name,
+                ] : null,
+                'vehicle' => $trip->vehicle ? [
+                    'id' => $trip->vehicle->id,
+                    'registration_number' => $trip->vehicle->registration_number,
+                ] : null,
+            ]),
+
+            'vehicles' => $vehicles->map(fn($vehicle) => [
+                'id' => $vehicle->id,
+                'registration_number' => $vehicle->registration_number,
+                'is_active' => $vehicle->is_active,
+            ]),
         ]);
     }
 }
-

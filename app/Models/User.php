@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Role;
 
 class User extends Authenticatable
 {
@@ -51,7 +52,14 @@ class User extends Authenticatable
 
     public function drivers()
     {
-        return $this->hasMany(User::class, 'manager_id')->where('role', 'driver');
+        $driverRoleId = Role::where('name', 'driver')->first()?->id;
+
+        if (!$driverRoleId) {
+            return $this->hasMany(User::class, 'manager_id')->whereRaw('0=1'); // return empty if role not found
+        }
+
+        return $this->hasMany(User::class, 'manager_id')
+            ->where('role_id', $driverRoleId);
     }
 
     public function manager()
@@ -69,24 +77,28 @@ class User extends Authenticatable
         return $this->hasMany(Trip::class, 'created_by');
     }
 
-    public function isCeo(): bool
+    public function isDriver(): bool
     {
-        return $this->hasRole('ceo');
+        $driverRoleId = 4;
+        return $this->role_id === $driverRoleId;
     }
 
     public function isManager(): bool
     {
-        return $this->hasRole('manager');
+        $managerRoleId = 2;
+        return $this->role_id === $managerRoleId;
     }
 
-    public function isDriver(): bool
+    public function isCeo(): bool
     {
-        return $this->hasRole('driver');
+        $ceoRoleId = 1;
+        return $this->role_id === $ceoRoleId;
     }
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin');
+        $adminRoleId = 3;
+        return $this->role_id === $adminRoleId;
     }
 
     public function managedVehicles(): HasMany
