@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Trip;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -143,7 +144,30 @@ class DriverController extends Controller
             ],
         ]);
     }
+
+    public function livePositions(): JsonResponse
+    {
+        $drivers = User::whereNotNull('last_latitude')
+            ->whereNotNull('last_longitude')
+            ->get(['id', 'name', 'last_latitude as lat', 'last_longitude as lng', 'last_location_at']);
+
+        return response()->json($drivers);
+    }
+
+    public function updateLocation(Request $request): JsonResponse
+    {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+        ]);
+
+        $driver = $request->user(); // logged-in driver
+
+        $driver->last_latitude = $request->lat;
+        $driver->last_longitude = $request->lng;
+        $driver->last_location_at = now();
+        $driver->save();
+
+        return response()->json(['message' => 'Location updated successfully']);
+    }
 }
-
-
-

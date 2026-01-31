@@ -26,6 +26,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/dashboard', [DriverController::class, 'dashboard']);
         Route::post('/trips/{trip}/status', [DriverController::class, 'updateTripStatus']);
         Route::post('/trips/{trip}/cmr', [DriverController::class, 'uploadCmr']);
+        Route::get('/live-positions', [App\Http\Controllers\Api\DriverController::class, 'livePositions']);
+        Route::post('/update-location', [App\Http\Controllers\Api\DriverController::class, 'updateLocation']);
     });
 
     // Trip routes
